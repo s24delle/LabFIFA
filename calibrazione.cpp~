@@ -1,0 +1,102 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <TRandom3.h>
+#include <TApplication.h>
+#include <TH1D.h>
+#include <TGraph.h>
+#include <TF1.h>
+#include <TCanvas.h>
+#include <fstream>
+#include <TMath.h>
+#include <Math/Minimizer.h>
+#include <Math/Factory.h>
+#include <Math/Functor.h>
+
+using namespace std;
+
+
+int main(){
+
+  TApplication app("app",0,NULL);
+  
+  ifstream file("Cobalto_calibrazione.dat");
+  if(!file.good()){
+    cout << "Error during data file reading" << endl;
+  }
+
+  TH1D h("h","Conteggi", 2048,0,2048);
+  int count;   //è il numero di conteggi misurati per ogni canale
+  int channel = 1;
+  while(file>>count){
+    for(int i=0; i<count; i++){
+    h.Fill(channel);
+    i++;
+    }
+    channel++;
+  }
+  file.close();
+
+
+  //TF1 f("f","[0]*TMath::Gaus(x,[1],[2],1)   +   pol1(3)  +[5]*TMath::Gaus(x,[6],[7],1)     ",1450,2048);
+  //oppure al posto di pol1(3) si può scrivere l'equazione della retta 
+
+   TF1 f1("f1","[0]*TMath::Gaus(x,[1],[2],1)   ",1450,1800);
+   TF1 f2("f2"," [3]*TMath::Gaus(x,[4],[5],1)   ",1700,2048);
+   TF1 f3("f3","  pol1(6)      ",1450,2048);
+  
+
+  //TF1 f("f","[0]*TMath::Gaus(x,[1],[2],1)   +   TMath::Landau(0) +[5]*TMath::Gaus(x,[6],[7],1)     + [8]*x",1450,2048);
+
+  TF1 f("f","f1+f2+f3",1450,2048);
+
+  f.SetParameter(1,1650);
+  f.SetParLimits(1,1630,1720);
+  f.SetParameter(2,10);
+  f.SetParameter(4,1850);
+  f.SetParLimits(4,1830,1870);
+  f.SetParameter(5,10);
+
+ 
+
+  TCanvas c1;
+  h.Draw();
+
+  h.Fit("f","R");
+
+  f1.FixParameter(0,f.GetParameter(0));
+  f1.FixParameter(1,f.GetParameter(1));
+  f1.FixParameter(2,f.GetParameter(2));
+  f1.SetLineColor(3);
+ f1.Draw("same");
+
+  f2.FixParameter(3,f.GetParameter(3));
+  f2.FixParameter(4,f.GetParameter(4));
+  f2.FixParameter(5,f.GetParameter(5));
+  f2.SetLineColor(7);
+  f2.Draw("same");
+
+  f3.FixParameter(6,f.GetParameter(6));
+  f3.FixParameter(7,f.GetParameter(7));
+  f3.SetLineColor(5);
+ f3.Draw("same");
+
+  //TCanvas c2;
+ 
+
+
+  cout << "Integrale: " << f.Integral(1450,2048) << endl;
+  cout << "Integrale: " << f1.Integral(1450,2048) << endl;
+  cout << "Integrale: " << f2.Integral(1450,2048) << endl;
+  cout << "Integrale: " << f3.Integral(1450,2048) << endl;
+
+
+
+
+
+
+
+  app.Run(true);
+
+
+}
